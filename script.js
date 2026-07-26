@@ -25,6 +25,35 @@ const cardCountSelect = document.getElementById('cardCount');
 const winScreen = document.getElementById('winScreen');
 const finalMovesEl = document.getElementById('finalMoves');
 
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'flip') {
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'match') {
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+    } else if (type === 'win') {
+        osc.frequency.setValueAtTime(523, audioCtx.currentTime); // C5
+        osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.15); // E5
+        osc.frequency.setValueAtTime(783, audioCtx.currentTime + 0.3); // G5
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.6);
+    }
+}
+
 function initGame() {
     // Oyunu sıfırla
     board.innerHTML = '';
