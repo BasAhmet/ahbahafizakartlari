@@ -3,39 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emoji Hafıza Oyunu</title>
+    <title>Emoji Hafıza Oyunu - 2 Kişilik</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>🧠 Emoji Hafıza Oyunu</h1>
+        <h1>🧠 İki Kişilik Hafıza Oyunu</h1>
         
         <div class="controls">
             <label for="cardCount">Zorluk Seç:</label>
             <select id="cardCount">
-                <option value="20">20 Kart (Çırak)</option>
-                <option value="40">40 Kart (Usta)</option>
-                <option value="60">60 Kart (Şampiyon)</option>
-                <option value="80">80 Kart (Efsane)</option>
-                <option value="100">100 Kart (İmkansız)</option>
+                <option value="20">20 Kart (Hızlı Maç)</option>
+                <option value="40">40 Kart (Orta)</option>
+                <option value="60">60 Kart (Zor)</option>
+                <option value="80">80 Kart (Şampiyon)</option>
+                <option value="100">100 Kart (Efsane)</option>
             </select>
-            <button id="startBtn">Oyunu Başlat</button>
+            <button id="startBtn">Yeniden Başlat</button>
         </div>
 
-        <div class="stats">
-            <p>Hamle: <span id="moves">0</span></p>
-            <p>Eşleşme: <span id="matches">0</span> / <span id="totalMatches">10</span></p>
+        <!-- YENİ: 2 Kişilik Skor Tablosu -->
+        <div class="scoreboard">
+            <div id="player1" class="player-box active">
+                👨‍🚀 1. Oyuncu: <span id="score1">0</span>
+            </div>
+            <div id="player2" class="player-box">
+                🦸‍♀️ 2. Oyuncu: <span id="score2">0</span>
+            </div>
         </div>
 
         <div class="game-board" id="gameBoard"></div>
 
         <div class="win-screen hidden" id="winScreen">
-            <h2>Tebrikler! 🎉</h2>
-            <p>Tüm eşleşmeleri <span id="finalMoves">0</span> hamlede buldun.</p>
+            <h2 id="winnerText">Tebrikler! 🎉</h2>
+            <p>1. Oyuncu: <span id="finalScore1">0</span> | 2. Oyuncu: <span id="finalScore2">0</span></p>
             <button id="restartBtn">Tekrar Oyna</button>
         </div>
     </div>
 
+    <!-- Konfeti Efekti İçin -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
