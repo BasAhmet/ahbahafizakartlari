@@ -1,3 +1,60 @@
+// --- SES MOTORU (Web Audio API) ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+    // Tarayıcı güvenlik politikası gereği, ses motoru ilk tıklamada aktif edilir
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'flip') {
+        // Kart çevirme sesi (Kısa ve tok bir pıt sesi)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.1);
+    } else if (type === 'match') {
+        // Eşleşme sesi (Zil/Çan gibi neşeli bir ses)
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.3);
+    } else if (type === 'nomatch') {
+        // Yanlış eşleşme sesi (Kısa, pes bir hata sesi)
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.2);
+    } else if (type === 'win') {
+        // Kazanma sesi (Atari oyunlarındaki gibi yükselen 4 nota)
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // Do
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15); // Mi
+        osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.3); // Sol
+        osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.45); // İnce Do
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.8);
+    }
+}
+// -----------------------------------
+
 const allEmojis = [
     '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
     '🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆',
@@ -12,7 +69,7 @@ let isLocked = false;
 let totalPairs = 10;
 let matchedPairs = 0;
 
-// YENİ: 2 Kişilik Mod Değişkenleri
+// 2 Kişilik Mod Değişkenleri
 let currentPlayer = 1; 
 let score1 = 0;
 let score2 = 0;
@@ -33,7 +90,6 @@ const finalScore2 = document.getElementById('finalScore2');
 const winnerText = document.getElementById('winnerText');
 
 function initGame() {
-    // Oyunu ve skorları sıfırla
     board.innerHTML = '';
     matchedPairs = 0;
     flippedCards = [];
@@ -81,6 +137,7 @@ function initGame() {
 function flipCard(card) {
     if (isLocked || card.classList.contains('flipped')) return;
 
+    playSound('flip'); // SES EKLENDİ
     card.classList.add('flipped');
     flippedCards.push(card);
 
@@ -95,9 +152,9 @@ function checkMatch() {
 
     if (card1.dataset.emoji === card2.dataset.emoji) {
         // EŞLEŞTİ!
+        playSound('match'); // SES EKLENDİ
         matchedPairs++;
         
-        // Puanı aktif oyuncuya yaz
         if (currentPlayer === 1) {
             score1++;
             score1El.innerText = score1;
@@ -108,17 +165,16 @@ function checkMatch() {
 
         flippedCards = [];
         isLocked = false;
-        // Not: Eşleşme olduğu için sıra değiştirmiyoruz! Bilen bir daha oynar.
 
         checkWinCondition();
     } else {
         // EŞLEŞMEDİ!
+        playSound('nomatch'); // SES EKLENDİ
         setTimeout(() => {
             card1.classList.remove('flipped');
             card2.classList.remove('flipped');
             flippedCards = [];
             
-            // Sırayı diğer oyuncuya geçir
             currentPlayer = currentPlayer === 1 ? 2 : 1;
             updateTurnUI();
             
@@ -127,7 +183,6 @@ function checkMatch() {
     }
 }
 
-// Aktif oyuncuyu ekranda vurgula
 function updateTurnUI() {
     if (currentPlayer === 1) {
         player1Box.classList.add('active');
@@ -138,9 +193,9 @@ function updateTurnUI() {
     }
 }
 
-// Oyun bitti mi kontrol et
 function checkWinCondition() {
     if (matchedPairs === totalPairs) {
+        playSound('win'); // SES EKLENDİ
         setTimeout(() => {
             finalScore1.innerText = score1;
             finalScore2.innerText = score2;
@@ -155,7 +210,6 @@ function checkWinCondition() {
 
             winScreen.classList.remove('hidden');
             
-            // Konfeti Patlat (canvas-confetti kütüphanesi)
             if (typeof confetti === 'function') {
                 confetti({
                     particleCount: 150,
@@ -167,7 +221,13 @@ function checkWinCondition() {
     }
 }
 
-startBtn.addEventListener('click', initGame);
-restartBtn.addEventListener('click', initGame);
+startBtn.addEventListener('click', () => {
+    playSound('flip');
+    initGame();
+});
+restartBtn.addEventListener('click', () => {
+    playSound('flip');
+    initGame();
+});
 
 initGame();
