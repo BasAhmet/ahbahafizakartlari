@@ -1,4 +1,3 @@
-// 50 farklı emoji (100 kart için 50 çifte ihtiyacımız var)
 const allEmojis = [
     '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
     '🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆',
@@ -9,68 +8,49 @@ const allEmojis = [
 
 let cards = [];
 let flippedCards = [];
-let matchedPairs = 0;
-let moves = 0;
 let isLocked = false;
 let totalPairs = 10;
+let matchedPairs = 0;
+
+// YENİ: 2 Kişilik Mod Değişkenleri
+let currentPlayer = 1; 
+let score1 = 0;
+let score2 = 0;
 
 // DOM Elementleri
 const board = document.getElementById('gameBoard');
-const movesEl = document.getElementById('moves');
-const matchesEl = document.getElementById('matches');
-const totalMatchesEl = document.getElementById('totalMatches');
 const startBtn = document.getElementById('startBtn');
 const restartBtn = document.getElementById('restartBtn');
 const cardCountSelect = document.getElementById('cardCount');
 const winScreen = document.getElementById('winScreen');
-const finalMovesEl = document.getElementById('finalMoves');
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-function playSound(type) {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    if (type === 'flip') {
-        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-    } else if (type === 'match') {
-        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
-    } else if (type === 'win') {
-        osc.frequency.setValueAtTime(523, audioCtx.currentTime); // C5
-        osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.15); // E5
-        osc.frequency.setValueAtTime(783, audioCtx.currentTime + 0.3); // G5
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.6);
-    }
-}
+const player1Box = document.getElementById('player1');
+const player2Box = document.getElementById('player2');
+const score1El = document.getElementById('score1');
+const score2El = document.getElementById('score2');
+const finalScore1 = document.getElementById('finalScore1');
+const finalScore2 = document.getElementById('finalScore2');
+const winnerText = document.getElementById('winnerText');
 
 function initGame() {
-    // Oyunu sıfırla
+    // Oyunu ve skorları sıfırla
     board.innerHTML = '';
     matchedPairs = 0;
-    moves = 0;
     flippedCards = [];
     isLocked = false;
-    movesEl.innerText = moves;
-    matchesEl.innerText = matchedPairs;
+    
+    score1 = 0;
+    score2 = 0;
+    currentPlayer = 1;
+    
+    score1El.innerText = score1;
+    score2El.innerText = score2;
+    updateTurnUI();
     winScreen.classList.add('hidden');
 
-    // Zorluk seviyesini al
     const cardCount = parseInt(cardCountSelect.value);
     totalPairs = cardCount / 2;
-    totalMatchesEl.innerText = totalPairs;
 
-    // Dinamik grid boyutu (Kart sayısı arttıkça kartları küçült)
     if (cardCount <= 40) {
         board.style.gridTemplateColumns = 'repeat(auto-fit, minmax(70px, 1fr))';
     } else if (cardCount <= 60) {
@@ -79,12 +59,10 @@ function initGame() {
         board.style.gridTemplateColumns = 'repeat(auto-fit, minmax(50px, 1fr))';
     }
 
-    // Emojileri seç ve karıştır
     const selectedEmojis = allEmojis.slice(0, totalPairs);
     cards = [...selectedEmojis, ...selectedEmojis];
-    cards.sort(() => Math.random() - 0.5); // Diziyi rastgele karıştır
+    cards.sort(() => Math.random() - 0.5); 
 
-    // Kartları ekrana çiz
     cards.forEach((emoji) => {
         const card = document.createElement('div');
         card.classList.add('card');
@@ -101,52 +79,95 @@ function initGame() {
 }
 
 function flipCard(card) {
-    // Kilitliyse veya zaten açıksa işlem yapma
     if (isLocked || card.classList.contains('flipped')) return;
 
     card.classList.add('flipped');
     flippedCards.push(card);
 
-    // 2 kart açıldığında kontrol et
     if (flippedCards.length === 2) {
-        moves++;
-        movesEl.innerText = moves;
         checkMatch();
     }
 }
 
 function checkMatch() {
-    isLocked = true; // Başka karta tıklamayı engelle
+    isLocked = true; 
     const [card1, card2] = flippedCards;
 
     if (card1.dataset.emoji === card2.dataset.emoji) {
-        // Eşleşme Başarılı
+        // EŞLEŞTİ!
         matchedPairs++;
-        matchesEl.innerText = matchedPairs;
+        
+        // Puanı aktif oyuncuya yaz
+        if (currentPlayer === 1) {
+            score1++;
+            score1El.innerText = score1;
+        } else {
+            score2++;
+            score2El.innerText = score2;
+        }
+
         flippedCards = [];
         isLocked = false;
+        // Not: Eşleşme olduğu için sıra değiştirmiyoruz! Bilen bir daha oynar.
 
-        // Oyun bitti mi?
-        if (matchedPairs === totalPairs) {
-            setTimeout(() => {
-                finalMovesEl.innerText = moves;
-                winScreen.classList.remove('hidden');
-            }, 500);
-        }
+        checkWinCondition();
     } else {
-        // Eşleşme Başarısız - 1 saniye sonra kapat
+        // EŞLEŞMEDİ!
         setTimeout(() => {
             card1.classList.remove('flipped');
             card2.classList.remove('flipped');
             flippedCards = [];
+            
+            // Sırayı diğer oyuncuya geçir
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            updateTurnUI();
+            
             isLocked = false;
         }, 1000);
     }
 }
 
-// Buton dinleyicileri
+// Aktif oyuncuyu ekranda vurgula
+function updateTurnUI() {
+    if (currentPlayer === 1) {
+        player1Box.classList.add('active');
+        player2Box.classList.remove('active');
+    } else {
+        player2Box.classList.add('active');
+        player1Box.classList.remove('active');
+    }
+}
+
+// Oyun bitti mi kontrol et
+function checkWinCondition() {
+    if (matchedPairs === totalPairs) {
+        setTimeout(() => {
+            finalScore1.innerText = score1;
+            finalScore2.innerText = score2;
+            
+            if (score1 > score2) {
+                winnerText.innerText = "🏆 1. Oyuncu Kazandı!";
+            } else if (score2 > score1) {
+                winnerText.innerText = "🏆 2. Oyuncu Kazandı!";
+            } else {
+                winnerText.innerText = "🤝 Berabere!";
+            }
+
+            winScreen.classList.remove('hidden');
+            
+            // Konfeti Patlat (canvas-confetti kütüphanesi)
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 150,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            }
+        }, 500);
+    }
+}
+
 startBtn.addEventListener('click', initGame);
 restartBtn.addEventListener('click', initGame);
 
-// Sayfa yüklendiğinde ilk oyunu başlat
 initGame();
